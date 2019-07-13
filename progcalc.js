@@ -177,6 +177,10 @@ let progcalc = {
         return this._stack.length === 0;
     },
 
+    depth: function() {
+        return this._stack.length;
+    },
+
     push: function(value) {
         this._stack.push(value);
     },
