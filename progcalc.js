@@ -95,7 +95,12 @@ let progcalc = {
     _init: function() {
         this._codeUI.value = DEFAULT_PROGRAM;
         this._promptUI.addEventListener('keydown', this._executePrompt.bind(this));
-        this._evaluateFunctions();
+        if (this._loadProgram()) {
+            this.message('Local definitions loaded');
+        } else {
+            this._evaluateFunctions();
+            this.message('Default definitions loaded');
+        }
     },
 
     _renderStack: function() {
@@ -114,9 +119,9 @@ let progcalc = {
         this._functions = {};
         try {
             eval(this._codeUI.value);
-            this._messageUI.innerText = "Definitions loaded";
+            this.message("Definitions loaded");
         } catch (err) {
-            this._messageUI.innerText = "Line: " + err.line + ": " + err.message;
+            this.message("Line: " + err.line + ": " + err.message);
         }
     },
 
@@ -125,14 +130,23 @@ let progcalc = {
     },
 
     _loadProgram: function() {
-        this._codeUI.value = window.localStorage.getItem("program");
-        this._evaluateFunctions();
+        let loaded = window.localStorage.getItem("program");
+        if (loaded) {
+            this._codeUI.value = loaded;
+            this._evaluateFunctions();
+            return true;
+        } else {
+            this.message('Aborted load as no definitions are available');
+            return false;
+        }
     },
 
     _executePrompt: function(event) {
         if (event.key != "Enter") {
             return;
         }
+
+        this.message('OK');
 
         event.preventDefault();
         let commandWords = this._promptUI.value.split(" ");
@@ -142,37 +156,45 @@ let progcalc = {
             if (command === "") return;
             if (aborted) return;
 
-            command = command.toLowerCase();
-            if (!isNaN(Number(command))) {
-                this._stack.push(Number(command));
-            } else if (command == "execute") {
-                this._evaluateFunctions();
-            } else if (command == "save") {
-                this._saveProgram();
-            } else if (command == "load") {
-                this._loadProgram();
-            } else if (command in this._functions) {
-                try {
-                    this._functions[command](this);
-                } catch (err) {
-                    this._messageUI.innerText = "Error in " + command + ": " + err.message;
-                    aborted = true;
-                }
-            } else {
-                this._messageUI.innerText = "Command " + command + " is not defined";
+            try {
+                this.invoke(command);
+            } catch (err) {
+                this.message("Error in " + command + ": " + err.message);
                 aborted = true;
             }
         });
-
-        if (!aborted) {
-            this._messageUI.innerText = "OK";
-        }
 
         this._promptUI.value = "";
         this._renderStack();
     },
 
     // External interface exposed to scripts
+    message: function(msg) {
+        this._messageUI.innerText = msg;
+    },
+
+    invoke: function(command) {
+        command = command.toLowerCase();
+        if (!isNaN(Number(command))) {
+            this._stack.push(Number(command));
+        } else if (command == "execute") {
+            this._evaluateFunctions();
+        } else if (command == "save") {
+            this._saveProgram();
+        } else if (command == "load") {
+            this._loadProgram();
+        } else if (command == "reset") {
+            window.localStorage.removeItem("program");
+            this._codeUI.value = DEFAULT_PROGRAM;
+            this._evaluateFunctions();
+            this.message("Default definitions restored and loaded");
+        } else if (command in this._functions) {
+            this._functions[command](this);
+        } else {
+            throw new Error("Command " + command + " is not defined");
+        }
+    },
+
     empty: function() {
         return this._stack.length === 0;
     },
@@ -195,7 +217,7 @@ let progcalc = {
 
     register: function(command, func) {
         command = command.toLowerCase();
-        if (command === 'execute' || command === 'save' || command == 'load') {
+        if (command === 'execute' || command === 'save' || command == 'load' || command == 'reset') {
             throw new Error(command + " is a reserved command and cannot be redefined");
         }
 
