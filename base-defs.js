@@ -130,7 +130,7 @@ progcalc.register('neg', (stack) => {
     let output = null;
 
     if (stack.isList(a)) {
-        a.map(x => -x);
+        output = a.map(x => -x);
     } else {
         output = -a;
     }
