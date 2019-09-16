@@ -1,87 +1,14 @@
-const DEFAULT_PROGRAM = [
-    "// To use the calculator, type in commands into the prompt on the bottom",
-    "// right and press enter.",
-    "//",
-    "// You can type multiple commands at once by separating them with spaces - for",
-    "// example, this will compute the factorial of 5 and leave it on the stack:",
-    "//",
-    "//    1 2 3 4 5 * * * *",
-    "//",
-    "// In addition to some basic numeric functions, there are a few special",
-    "// commands:",
-    "//",
-    "// - You can reload the functions definitions using 'execute'",
-    "//",
-    "// - You can save the function definitions using 'save'. This uses localstorage,",
-    "//   so it will persist even if you leave the page.",
-    "//",
-    "// - You can load and evaluate your saved function definitions using 'load'.",
-    "//",
-    "// - Finally, you can insert the default definitions using 'reset'.",
-    "",
-    "progcalc.register('+', (stack) => {",
-    "    const b = stack.pop();",
-    "    const a = stack.pop();",
-    "    stack.push(a + b);",
-    "});",
-    "",
-    "progcalc.register('-', (stack) => {",
-    "    const b = stack.pop();",
-    "    const a = stack.pop();",
-    "    stack.push(a - b);",
-    "});",
-    "",
-    "progcalc.register('++', (stack) => {",
-    "    const a = stack.pop();",
-    "    stack.push(a + 1);",
-    "});",
-    "",
-    "progcalc.register('--', (stack) => {",
-    "    const a = stack.pop();",
-    "    stack.push(a - 1);",
-    "});",
-    "",
-    "progcalc.register('*', (stack) => {",
-    "    const b = stack.pop();",
-    "    const a = stack.pop();",
-    "    stack.push(a * b);",
-    "});",
-    "",
-    "progcalc.register('/', (stack) => {",
-    "    const b = stack.pop();",
-    "    const a = stack.pop();",
-    "    stack.push(a / b);",
-    "});",
-    "",
-    "progcalc.register('neg', (stack) => {",
-    "    const a = stack.pop();",
-    "    stack.push(-a);",
-    "});",
-    "",
-    "progcalc.register('dup', (stack) => {",
-    "    const a = stack.pop();",
-    "    stack.push(a);",
-    "    stack.push(a);",
-    "});",
-    "",
-    "progcalc.register('drop', (stack) => {",
-    "    stack.pop();",
-    "});",
-    "",
-    "progcalc.register('sum', (stack) => {",
-    "    let total = 0;",
-    "    while (!stack.empty()) {",
-    "        total += stack.pop();",
-    "    }",
-    "    stack.push(total);",
-    "});",
-    "",
-    "progcalc.register('clear', (stack) => {",
-    "    while (!stack.empty()) {",
-    "        stack.pop();",
-    "    }",
-    "});",
-].join("\n");
+function xhr(url) {
+    return new Promise((resolve, reject) => {
+        const request = new XMLHttpRequest();
+        request.open('GET', url);
+        request.onabort = () => reject('Aborted');
+        request.onerror = () => reject('Received error');
+        request.ontimeout = () => reject('Timed out');
+        request.onload = () => resolve(request.responseText);
+        request.send();
+    });
+}
 
 let progcalc = {
     _stack: [],
@@ -91,16 +18,19 @@ let progcalc = {
     _codeUI: document.getElementById("program"),
     _messageUI: document.getElementById("messages"),
     _promptUI: document.getElementById("prompt"),
+    _defaultProgram: "",
 
     _init: function() {
-        this._codeUI.value = DEFAULT_PROGRAM;
-        this._promptUI.addEventListener('keydown', this._executePrompt.bind(this));
-        if (this._loadProgram()) {
-            this.message('Local definitions loaded');
-        } else {
-            this._evaluateFunctions();
-            this.message('Default definitions loaded');
-        }
+        xhr('base-defs.js').then(default_program => {
+            this._defaultProgram = default_program;
+            this._promptUI.addEventListener('keydown', this._executePrompt.bind(this));
+            if (this._loadProgram()) {
+                this.message('Local definitions loaded');
+            } else {
+                this._evaluateFunctions();
+                this.message('Default definitions loaded');
+            }
+        });
     },
 
     _renderStack: function() {
@@ -185,7 +115,7 @@ let progcalc = {
             this._loadProgram();
         } else if (command == "reset") {
             window.localStorage.removeItem("program");
-            this._codeUI.value = DEFAULT_PROGRAM;
+            this._codeUI.value = this._defaultProgram;
             this._evaluateFunctions();
             this.message("Default definitions restored and loaded");
         } else if (command in this._functions) {
