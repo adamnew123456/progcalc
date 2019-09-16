@@ -23,6 +23,8 @@
 // - 'drop' removes the top-most element of the stack
 //
 // - 'clear' removes all elements from the stack
+//
+// - 'swap' switches the positions of the top two items on the stack
 
 progcalc.register('dup', (stack) => {
     const a = stack.pop();
@@ -40,6 +42,12 @@ progcalc.register('clear', (stack) => {
     }
 });
 
+progcalc.register('swap', (stack) => {
+    const b = stack.pop();
+    const a = stack.pop();
+    stack.push(b);
+    stack.push(a);
+});
 
 // ARITHMETIC OPERATORS
 // - '+' '-' '*' '/' are all binary operators. They can be used in various modes:
@@ -149,9 +157,14 @@ progcalc.register('neg', (stack) => {
 //   1 [2 3] @ => [1 2 3]
 //   [1 2] [3 4] @ => [1 2 3 4]
 //
+// - 'collect' merges all the items on the stack into one list
+//
 // - 'sum' and 'product' compute the respective operations over the top-most value
 //   1 sum => 1
 //   [1 2 3] sum => 6
+//
+// - 'average' computes the average of the top-most array.
+//   [1 2 3 4 5] average => 3
 //
 // - 'count' counts the number of values on the top-most element
 //   1 count => -1
@@ -176,6 +189,12 @@ progcalc.register('@', (stack) => {
     }
 
     stack.push(aval.concat(bval));
+});
+
+progcalc.register('collect', (stack) => {
+    while (stack.depth() > 1) {
+        stack.invoke('@');
+    }
 });
 
 progcalc.register('sum', (stack) => {
@@ -204,6 +223,16 @@ progcalc.register('product', (stack) => {
     }
 
     stack.push(output);
+});
+
+progcalc.register('average', (stack) => {
+    [
+        'dup',
+        'sum',
+        'swap',
+        'count',
+        '/'
+    ].forEach(cmd => stack.invoke(cmd));
 });
 
 progcalc.register('count', (stack) => {
