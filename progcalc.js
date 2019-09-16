@@ -40,7 +40,12 @@ let progcalc = {
 
         for (let i = this._stack.length - 1; i >= 0; i--) {
             let node = document.createElement('div');
-            node.innerText = this._stack[i].toString();
+            let value = this._stack[i];
+            if (value instanceof Array) {
+                node.innerText = '[' + value.join(' ') + ']';
+            } else {
+                node.innerText = value.toString();
+            }
             this._stackUI.appendChild(node);
         }
     },
@@ -156,6 +161,35 @@ let progcalc = {
         }
 
         this._functions[command] = func;
+    },
+
+    zip: function(/* arrays */) {
+        let nargs = arguments.length;
+        let baseLength = arguments[0].length;
+        for (let arg = 1; arg < nargs; arg++) {
+            if (arguments[arg].length != baseLength) {
+                throw new Error('Tried to zip lists of differing lengths ' + baseLength + ' and ' + arguments[arg].length);
+            }
+        }
+
+        let output = [];
+        for (let i = 0; i < baseLength; i++) {
+            let row = [];
+            for (let arg = 0; arg < nargs; arg++) {
+                row.push(arguments[arg][i]);
+            }
+            output.push(row);
+        }
+
+        return output;
+    },
+
+    isList: function(x) {
+        return x instanceof Array;
+    },
+
+    isScalar: function(x) {
+        return !this.isList(x);
     }
 };
 
