@@ -20,12 +20,27 @@
     height: 8%;
 }
 
-#program {
+#program-box {
+    display: flex;
+    align-items: stretch;
+    flex-direction: column;
+
     position: fixed;
     right: 2%;
     top: 2%;
     width: 63%;
     height: 85%;
+}
+
+#program-selector {
+    flex: 1 0;
+    min-height: 32px;
+    height: 32px;
+    max-height: 32px;
+}
+
+#program {
+    flex: 1 1;
 }
 
 #prompt {

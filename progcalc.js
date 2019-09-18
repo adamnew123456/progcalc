@@ -10,27 +10,177 @@ function xhr(url) {
     });
 }
 
+function objectKeys(obj) {
+    let keys = [];
+    for (let key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            keys.push(key);
+        }
+    }
+    return keys;
+}
+
+function loadBaseDefs() {
+    return xhr('base-defs.js').then(annotated_code => {
+        let definitions = {};
+        let current_function = null;
+        let current_lines = [];
+        annotated_code
+            .split('\n')
+            .forEach(line => {
+                if (line.startsWith('//@ ')) {
+                    if (current_function) {
+                        definitions[current_function] = current_lines.join('\n');
+                    }
+
+                    current_lines = [];
+                    current_function = line.split(' ')[1];
+                } else {
+                    current_lines.push(line);
+                }
+            });
+
+        if (current_function) {
+            definitions[current_function] = current_lines.join('\n');
+        }
+
+        return definitions;
+    });
+}
+
+function loadUserDefs() {
+    let as_json = window.localStorage.getItem("program");
+    if (as_json) {
+        return JSON.parse(as_json);
+    } else {
+        return {};
+    }
+}
+
+function compileDefs(definitions, scope) {
+    let compiled = {};
+
+    for (let key in definitions) {
+        if (!definitions.hasOwnProperty(key)) continue;
+
+        try {
+            compiled[key] = new Function('stack', definitions[key]);
+        } catch (err) {
+            throw new Error("Error compiling " + scope + " definition for " + key + " at line " + err.lineNumber);
+        }
+    }
+
+    return compiled;
+}
+
+function saveUserDefs(definitions) {
+    let as_json = JSON.stringify(definitions);
+    window.localStorage.setItem("program", as_json);
+}
+
+function createFunctionEnvironment(builtins, user) {
+    return {
+        builtins: builtins,
+        compiledBuiltins: compileDefs(builtins, 'builtin'),
+
+        user: user,
+        compiledUser: compileDefs(user, 'user'),
+
+        listDefs: function() {
+            let names = objectKeys(this.builtins);
+
+            objectKeys(this.user)
+                .filter(name => !this.builtins.hasOwnProperty(name))
+                .forEach(name => names.push(name));
+
+            return names;
+        },
+
+        saveUserDefs: function() {
+            saveUserDefs(this.user);
+        },
+
+        resolveCompiled: function(name) {
+            if (this.compiledUser.hasOwnProperty(name)) {
+                return this.compiledUser[name];
+            } else if (this.compiledBuiltins.hasOwnProperty(name)) {
+                return this.compiledBuiltins[name];
+            } else {
+                return null;
+            }
+        },
+
+        resolveCode: function(name) {
+            if (this.user.hasOwnProperty(name)) {
+                return this.user[name];
+            } else if (this.builtins.hasOwnProperty(name)) {
+                return this.builtins[name];
+            } else {
+                return null;
+            }
+        },
+
+        setUserDefs: function(defs) {
+            let compiled = compileDefs(defs, 'user');
+
+            // Only assign the user's definitions if they actually compile
+            this.user = defs;
+            this.compiledUser = compiled;
+        },
+
+        bindUserDef: function(name, code) {
+            try {
+                let compiled = new Function('stack', code);
+                this.user[name] = code;
+                this.compiledUser[name] = code;
+            } catch (err) {
+                throw new Error("Error compiling user definition for " + name + " at line " + err.lineNumber);
+            }
+        }
+    };
+}
+
 let progcalc = {
     _stack: [],
-    _functions: {},
+    _environment: null,
+    _currentFunction: null,
 
     _stackUI: document.getElementById("stack"),
     _codeUI: document.getElementById("program"),
     _messageUI: document.getElementById("messages"),
+    _functionListUI: document.getElementById("program-selector"),
     _promptUI: document.getElementById("prompt"),
-    _defaultProgram: "",
 
     _init: function() {
-        xhr('base-defs.js').then(default_program => {
-            this._defaultProgram = default_program;
+        loadBaseDefs().then(builtin_defs => {
+            let user_defs = loadUserDefs();
+            this._environment = createFunctionEnvironment(builtin_defs, user_defs);
+            this._rebuildFunctionList();
+            this.message('Local definitions loaded and merged');
+
             this._promptUI.addEventListener('keydown', this._executePrompt.bind(this));
-            if (this._loadProgram()) {
-                this.message('Local definitions loaded');
-            } else {
-                this._evaluateFunctions();
-                this.message('Default definitions loaded');
-            }
+            this._functionListUI.addEventListener('change', this._viewSource.bind(this));
         });
+    },
+
+    _rebuildFunctionList: function() {
+        while (this._functionListUI.firstChild) {
+            this._functionListUI.removeChild(this._functionListUI.firstChild);
+        }
+
+        // Add a default to reset the view
+        let choice = document.createElement('option');
+        choice.value = name;
+        choice.innerText = name;
+        this._functionListUI.appendChild(choice);
+
+        this._environment.listDefs()
+            .forEach(name => {
+                let choice = document.createElement('option');
+                choice.value = name;
+                choice.innerText = name;
+                this._functionListUI.appendChild(choice);
+            });
     },
 
     _renderStack: function() {
@@ -50,30 +200,16 @@ let progcalc = {
         }
     },
 
-    _evaluateFunctions: function() {
-        this._functions = {};
-        try {
-            eval(this._codeUI.value);
-            this.message("Definitions loaded");
-        } catch (err) {
-            this.message("Line: " + err.line + ": " + err.message);
+    _viewSource: function(event) {
+        let funcName = this._functionListUI.value;
+        if (!funcName) {
+            this._codeUI.value = 'No function selected';
+            this._currentFunction = null;
+            return;
         }
-    },
 
-    _saveProgram: function() {
-        window.localStorage.setItem("program", this._codeUI.value);
-    },
-
-    _loadProgram: function() {
-        let loaded = window.localStorage.getItem("program");
-        if (loaded) {
-            this._codeUI.value = loaded;
-            this._evaluateFunctions();
-            return true;
-        } else {
-            this.message('Aborted load as no definitions are available');
-            return false;
-        }
+        this._codeUI.value = this._environment.resolveCode(funcName);
+        this._currentFunction = funcName;
     },
 
     _executePrompt: function(event) {
@@ -112,21 +248,63 @@ let progcalc = {
         command = command.toLowerCase();
         if (!isNaN(Number(command))) {
             this._stack.push(Number(command));
-        } else if (command == "execute") {
-            this._evaluateFunctions();
-        } else if (command == "save") {
-            this._saveProgram();
-        } else if (command == "load") {
-            this._loadProgram();
-        } else if (command == "reset") {
-            window.localStorage.removeItem("program");
-            this._codeUI.value = this._defaultProgram;
-            this._evaluateFunctions();
+        } else if (command == "new-func") {
+            let name = prompt("");
+            if (name) {
+                if (name.match(/[ \n\r\t]/)) {
+                    throw new Error("Command name contains invalid whitespace");
+                }
+
+                if (!isNaN(Number(name))) {
+                    throw new Error("Command name cannot be numeric");
+                }
+
+                this._currentFunction = name;
+                this._codeUI.value = '// Write your command body here';
+                this.message("New function template added for " + name);
+            } else {
+                this.message("New function cancelled");
+            }
+        } else if (command == "save-func") {
+            if (!this._currentFunction) {
+                throw new Error("Cannot save function when no function is being edited");
+            }
+
+            this._environment.bindUserDef(this._currentFunction, this._codeUI.value);
+            this._environment.saveUserDefs();
+
+            // In case the function is newly defined
+            this._rebuildFunctionList();
+            this._functionListUI.value = this._currentFunction;
+            this.message("Function saved and compiled");
+        } else if (command == "revert-func") {
+            if (!this._currentFunction) {
+                throw new Error("Cannot revert function when no function is being edited");
+            }
+
+            let existingCode = this._environment.resolveCode(this._currentFunction);
+            if (!existingCode) {
+                // A newly defined function which is being aborted
+                this._currentFunction = null;
+                this._codeUI.value = '';
+                this._functionListUI.value = '';
+                this.message("New function cancelled");
+            } else {
+                this._codeUI.value = existingCode;
+                this.message("Existing function code reset");
+            }
+        } else if (command == "reset-funcs") {
+            this._environment.setUserDefs({});
+            this._environment.saveUserDefs();
+            this._rebuildFunctionList();
             this.message("Default definitions restored and loaded");
-        } else if (command in this._functions) {
-            this._functions[command](this);
         } else {
-            throw new Error("Command " + command + " is not defined");
+            let func = this._environment.resolveCompiled(command);
+            if (func) {
+                func(this);
+            } else {
+                throw new Error("Command " + command + " is not defined");
+            }
         }
     },
 

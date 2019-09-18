@@ -1,249 +1,186 @@
-// To use the calculator, type in commands into the prompt on the bottom
-// right and press enter.
-//
-// You can type multiple commands at once by separating them with spaces - for
-// example, this will compute the factorial of 5 and leave it on the stack:
-//
-//    1 2 3 4 5 * * * *
-
-// BUILTIN FUNCTIONS
-// - 'execute' clears the old definitions and executes the code view
-//
-// - 'save' saves the contents of the code view into localStorage, so that it persists for later
-//   visits
-//
-// - 'load' clears the old definitions and reloads your saved code. If you do not have
-//   any then the default definitions are loaded instead.
-//
-// - 'reset' clears your saved code and reloads the default code
-
-// STACK FUNCTIONS
-// - 'dup' copies the top-most element of the stack
-//
-// - 'drop' removes the top-most element of the stack
-//
-// - 'clear' removes all elements from the stack
-//
-// - 'swap' switches the positions of the top two items on the stack
-
-progcalc.register('dup', (stack) => {
-    const a = stack.pop();
-    stack.push(a);
-    stack.push(a);
-});
-
-progcalc.register('drop', (stack) => {
+//@ dup
+// Copies the top element on the stack
+const a = stack.pop();
+stack.push(a);
+stack.push(a);
+//@ drop
+// Removes the top element from the stack
+stack.pop();
+//@ clear
+// Removes all elements from the stack
+while (!stack.empty()) {
     stack.pop();
-});
+}
+//@ swap
+// Switches the positions of the top two elements on the stack
+const b = stack.pop();
+const a = stack.pop();
+stack.push(b);
+stack.push(a);
+//@ +
+// Adds values element-wise
+//  1 2 + => 3
+//  [1 2] 3 + => [4 5]
+//  [1 2] [3 4] => [4 6]
+const b = stack.pop();
+const a = stack.pop();
+let output = null;
 
-progcalc.register('clear', (stack) => {
-    while (!stack.empty()) {
-        stack.pop();
-    }
-});
+if (stack.isList(a) && stack.isList(b)) {
+    output = stack.zip(a, b).map(ab => ab[0] + ab[1]);
+} else if (stack.isList(a)) {
+    output = a.map(x => x + b);
+} else if (stack.isList(b)) {
+    output = b.map(x => a + x);
+} else {
+    output = a + b;
+}
 
-progcalc.register('swap', (stack) => {
-    const b = stack.pop();
-    const a = stack.pop();
-    stack.push(b);
-    stack.push(a);
-});
+stack.push(output);
+//@ -
+// Subtracts values element-wise. See + for examples
+const b = stack.pop();
+const a = stack.pop();
+let output = null;
 
-// ARITHMETIC OPERATORS
-// - '+' '-' '*' '/' are all binary operators. They can be used in various modes:
-//
-//    2 3 * => 6                      value
-//    [1 2 3] 4 * => [4 8 12]         scalar
-//    [1 2 3] [4 5 6] * => [4 10 18]  element-wise
-//
-// - 'neg' is a unary operator which works similarly to the binary operators:
-//
-//    2 neg => -2
-//    [1 2 -3] neg => [-1 -2 3]
+if (stack.isList(a) && stack.isList(b)) {
+    output = stack.zip(a, b).map(ab => ab[0] - ab[1]);
+} else if (stack.isList(a)) {
+    output = a.map(x => x - b);
+} else if (stack.isList(b)) {
+    output = b.map(x => a - x);
+} else {
+    output = a - b;
+}
 
-progcalc.register('+', (stack) => {
-    const b = stack.pop();
-    const a = stack.pop();
-    let output = null;
+stack.push(output);
+//@ *
+// Multiplies values element-wise. See + for examples
+const b = stack.pop();
+const a = stack.pop();
+let output = null;
 
-    if (stack.isList(a) && stack.isList(b)) {
-        output = stack.zip(a, b).map(ab => ab[0] + ab[1]);
-    } else if (stack.isList(a)) {
-        output = a.map(x => x + b);
-    } else if (stack.isList(b)) {
-        output = b.map(x => a + x);
-    } else {
-        output = a + b;
-    }
+if (stack.isList(a) && stack.isList(b)) {
+    output = stack.zip(a, b).map(ab => ab[0] * ab[1]);
+} else if (stack.isList(a)) {
+    output = a.map(x => x * b);
+} else if (stack.isList(b)) {
+    output = b.map(x => a * x);
+} else {
+    output = a * b;
+}
 
-    stack.push(output);
-});
+stack.push(output);
+//@ /
+// Divides values element-wise. See + for examples
+const b = stack.pop();
+const a = stack.pop();
+let output = null;
 
-progcalc.register('-', (stack) => {
-    const b = stack.pop();
-    const a = stack.pop();
-    let output = null;
+if (stack.isList(a) && stack.isList(b)) {
+    output = stack.zip(a, b).map(ab => ab[0] / ab[1]);
+} else if (stack.isList(a)) {
+    output = a.map(x => x / b);
+} else if (stack.isList(b)) {
+    output = b.map(x => a / x);
+} else {
+    output = a / b;
+}
 
-    if (stack.isList(a) && stack.isList(b)) {
-        output = stack.zip(a, b).map(ab => ab[0] - ab[1]);
-    } else if (stack.isList(a)) {
-        output = a.map(x => x - b);
-    } else if (stack.isList(b)) {
-        output = b.map(x => a - x);
-    } else {
-        output = a - b;
-    }
+stack.push(output);
+//@ neg
+// Negates values element-wise.
+//  1 neg => -1
+//  [1 -2 3] neg => [-1 2 -3]
+const a = stack.pop();
+let output = null;
 
-    stack.push(output);
-});
+if (stack.isList(a)) {
+    output = a.map(x => -x);
+} else {
+    output = -a;
+}
 
-progcalc.register('*', (stack) => {
-    const b = stack.pop();
-    const a = stack.pop();
-    let output = null;
-
-    if (stack.isList(a) && stack.isList(b)) {
-        output = stack.zip(a, b).map(ab => ab[0] * ab[1]);
-    } else if (stack.isList(a)) {
-        output = a.map(x => x * b);
-    } else if (stack.isList(b)) {
-        output = b.map(x => a * x);
-    } else {
-        output = a * b;
-    }
-
-    stack.push(output);
-});
-
-progcalc.register('/', (stack) => {
-    const b = stack.pop();
-    const a = stack.pop();
-    let output = null;
-
-    if (stack.isList(a) && stack.isList(b)) {
-        output = stack.zip(a, b).map(ab => ab[0] / ab[1]);
-    } else if (stack.isList(a)) {
-        output = a.map(x => x / b);
-    } else if (stack.isList(b)) {
-        output = b.map(x => a / x);
-    } else {
-        output = a / b;
-    }
-
-    stack.push(output);
-});
-
-progcalc.register('neg', (stack) => {
-    const a = stack.pop();
-    let output = null;
-
-    if (stack.isList(a)) {
-        output = a.map(x => -x);
-    } else {
-        output = -a;
-    }
-
-    stack.push(output);
-});
-
-// LIST MANIPULATION FUNCTIONS
-//
-// - 'empty' pushes the empty list
-//
-// - '@' combines the top two values onto the stack, flatly
-//
+stack.push(output);
+//@ empty
+// Pushes an empty value to the stack
+stack.push([]);
+//@ @
+// Concatenates the top two elements on the stack.
 //   1 2 @ => [1 2]
 //   [1 2] 3 @ => [1 2 3]
-//   1 [2 3] @ => [1 2 3]
-//   [1 2] [3 4] @ => [1 2 3 4]
-//
-// - 'collect' merges all the items on the stack into one list
-//
-// - 'sum' and 'product' compute the respective operations over the top-most value
+//   [1 2] [3 4] => [1 2 3 4]
+const b = stack.pop();
+const a = stack.pop();
+let bval = b;
+let aval = a;
+
+if (!stack.isList(a)) {
+    aval = [a];
+}
+
+if (!stack.isList(b)) {
+    bval = [b];
+}
+
+stack.push(aval.concat(bval));
+//@ collect
+// Combines all the elements together on the stack, as with @
+//   1 2 3 4 5 collect => [1 2 3 4 5]
+while (stack.depth() > 1) {
+    stack.invoke('@');
+}
+//@ sum
+// Sums the value of the topmost element on the stack.
 //   1 sum => 1
-//   [1 2 3] sum => 6
-//
-// - 'average' computes the average of the top-most array.
-//   [1 2 3 4 5] average => 3
-//
-// - 'count' counts the number of values on the top-most element
+//   [2 3 4] sum => 9
+const a = stack.pop();
+let output = null;
+
+if (stack.isList(a)) {
+    output = 0;
+    a.forEach(x => output += x);
+} else {
+    output = a;
+}
+
+stack.push(output);
+//@ product
+// Multiplies the value of the topmost element on the stack.
+//   1 product => 1
+//   [2 3 4] product => 24
+const a = stack.pop();
+let output = null;
+
+if (stack.isList(a)) {
+    output = 1;
+    a.forEach(x => output *= x);
+} else {
+    output = a;
+}
+
+stack.push(output);
+//@ average
+// Computes the mean of the topmost list on the stack.
+//   [1 2 3] average => 2
+[
+    'dup',
+    'sum',
+    'swap',
+    'count',
+    '/'
+].forEach(cmd => stack.invoke(cmd));
+//@ count
+// Counts the number of elements in the topmost value on the stack.
 //   1 count => -1
 //   [1 2 3] count => 3
+const a = stack.pop();
+let output = null;
 
-progcalc.register('empty', (stack) => {
-    stack.push([]);
-});
+if (stack.isList(a)) {
+    output = a.length;
+} else {
+    output = -1;
+}
 
-progcalc.register('@', (stack) => {
-    const b = stack.pop();
-    const a = stack.pop();
-    let bval = b;
-    let aval = a;
-
-    if (!stack.isList(a)) {
-        aval = [a];
-    }
-
-    if (!stack.isList(b)) {
-        bval = [b];
-    }
-
-    stack.push(aval.concat(bval));
-});
-
-progcalc.register('collect', (stack) => {
-    while (stack.depth() > 1) {
-        stack.invoke('@');
-    }
-});
-
-progcalc.register('sum', (stack) => {
-    const a = stack.pop();
-    let output = null;
-
-    if (stack.isList(a)) {
-        output = 0;
-        a.forEach(x => output += x);
-    } else {
-        output = a;
-    }
-
-    stack.push(output);
-});
-
-progcalc.register('product', (stack) => {
-    const a = stack.pop();
-    let output = null;
-
-    if (stack.isList(a)) {
-        output = 1;
-        a.forEach(x => output *= x);
-    } else {
-        output = a;
-    }
-
-    stack.push(output);
-});
-
-progcalc.register('average', (stack) => {
-    [
-        'dup',
-        'sum',
-        'swap',
-        'count',
-        '/'
-    ].forEach(cmd => stack.invoke(cmd));
-});
-
-progcalc.register('count', (stack) => {
-    const a = stack.pop();
-    let output = null;
-
-    if (stack.isList(a)) {
-        output = a.length;
-    } else {
-        output = -1;
-    }
-
-    stack.push(output);
-});
+stack.push(output);
