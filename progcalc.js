@@ -51,7 +51,13 @@ function loadBaseDefs() {
 function loadUserDefs() {
     let as_json = window.localStorage.getItem("program");
     if (as_json) {
-        return JSON.parse(as_json);
+        try {
+            return JSON.parse(as_json);
+        } catch (err) {
+            // Write back {} to avoid this happening next time
+            window.localStorage.setItem("program", "{}");
+            return {};
+        }
     } else {
         return {};
     }
@@ -132,7 +138,7 @@ function createFunctionEnvironment(builtins, user) {
             try {
                 let compiled = new Function('stack', code);
                 this.user[name] = code;
-                this.compiledUser[name] = code;
+                this.compiledUser[name] = new Function('stack', code);
             } catch (err) {
                 throw new Error("Error compiling user definition for " + name + " at line " + err.lineNumber);
             }
