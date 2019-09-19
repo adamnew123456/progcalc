@@ -349,25 +349,28 @@ let progcalc = {
         this._functions[command] = func;
     },
 
-    zip: function(/* arrays */) {
-        let nargs = arguments.length;
-        let baseLength = arguments[0].length;
-        for (let arg = 1; arg < nargs; arg++) {
-            if (arguments[arg].length != baseLength) {
-                throw new Error('Tried to zip lists of differing lengths ' + baseLength + ' and ' + arguments[arg].length);
+    elementWise: function(x, y, func) {
+        if (this.isList(x) && this.isList(y)) {
+            let output = [];
+            for (let i = 0; i < Math.min(x.length, y.length); i++) {
+                output.push(func(x[i], y[i]));
             }
-        }
-
-        let output = [];
-        for (let i = 0; i < baseLength; i++) {
-            let row = [];
-            for (let arg = 0; arg < nargs; arg++) {
-                row.push(arguments[arg][i]);
+            return output;
+        } else if (this.isList(x)) {
+            let output = [];
+            for (let i = 0; i < x.length; i++) {
+                output.push(func(x[i], y));
             }
-            output.push(row);
+            return output;
+        } else if (this.isList(y)) {
+            let output = [];
+            for (let i = 0; i < y.length; i++) {
+                output.push(func(x, y[i]));
+            }
+            return output;
+        } else {
+            return func(x, y);
         }
-
-        return output;
     },
 
     isList: function(x) {

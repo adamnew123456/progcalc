@@ -24,69 +24,25 @@ stack.push(a);
 //  [1 2] [3 4] => [4 6]
 const b = stack.pop();
 const a = stack.pop();
-let output = null;
-
-if (stack.isList(a) && stack.isList(b)) {
-    output = stack.zip(a, b).map(ab => ab[0] + ab[1]);
-} else if (stack.isList(a)) {
-    output = a.map(x => x + b);
-} else if (stack.isList(b)) {
-    output = b.map(x => a + x);
-} else {
-    output = a + b;
-}
-
+let output = stack.elementWise(a, b, (aelt, belt) => aelt + belt);
 stack.push(output);
 //@ -
 // Subtracts values element-wise. See + for examples
 const b = stack.pop();
 const a = stack.pop();
-let output = null;
-
-if (stack.isList(a) && stack.isList(b)) {
-    output = stack.zip(a, b).map(ab => ab[0] - ab[1]);
-} else if (stack.isList(a)) {
-    output = a.map(x => x - b);
-} else if (stack.isList(b)) {
-    output = b.map(x => a - x);
-} else {
-    output = a - b;
-}
-
+let output = stack.elementWise(a, b, (aelt, belt) => aelt - belt);
 stack.push(output);
 //@ *
 // Multiplies values element-wise. See + for examples
 const b = stack.pop();
 const a = stack.pop();
-let output = null;
-
-if (stack.isList(a) && stack.isList(b)) {
-    output = stack.zip(a, b).map(ab => ab[0] * ab[1]);
-} else if (stack.isList(a)) {
-    output = a.map(x => x * b);
-} else if (stack.isList(b)) {
-    output = b.map(x => a * x);
-} else {
-    output = a * b;
-}
-
+let output = stack.elementWise(a, b, (aelt, belt) => aelt * belt);
 stack.push(output);
 //@ /
 // Divides values element-wise. See + for examples
 const b = stack.pop();
 const a = stack.pop();
-let output = null;
-
-if (stack.isList(a) && stack.isList(b)) {
-    output = stack.zip(a, b).map(ab => ab[0] / ab[1]);
-} else if (stack.isList(a)) {
-    output = a.map(x => x / b);
-} else if (stack.isList(b)) {
-    output = b.map(x => a / x);
-} else {
-    output = a / b;
-}
-
+let output = stack.elementWise(a, b, (aelt, belt) => aelt / belt);
 stack.push(output);
 //@ neg
 // Negates values element-wise.
