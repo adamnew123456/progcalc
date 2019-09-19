@@ -150,6 +150,7 @@ let progcalc = {
     _stack: [],
     _environment: null,
     _currentFunction: null,
+    _defaultDisplay: null,
 
     _stackUI: document.getElementById("stack"),
     _codeUI: document.getElementById("program"),
@@ -158,6 +159,7 @@ let progcalc = {
     _promptUI: document.getElementById("prompt"),
 
     _init: function() {
+        this._defaultDisplay = this._codeUI.value;
         loadBaseDefs().then(builtin_defs => {
             let user_defs = loadUserDefs();
             this._environment = createFunctionEnvironment(builtin_defs, user_defs);
@@ -209,7 +211,7 @@ let progcalc = {
     _viewSource: function(event) {
         let funcName = this._functionListUI.value;
         if (!funcName) {
-            this._codeUI.value = 'No function selected';
+            this._codeUI.value = this._defaultDisplay;
             this._currentFunction = null;
             return;
         }
@@ -292,7 +294,7 @@ let progcalc = {
             if (!existingCode) {
                 // A newly defined function which is being aborted
                 this._currentFunction = null;
-                this._codeUI.value = '';
+                this._codeUI.value = this._defaultDisplay;
                 this._functionListUI.value = '';
                 this.message("New function cancelled");
             } else {
