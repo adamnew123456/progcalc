@@ -1,3 +1,5 @@
+const DEFAULT_DISPLAY = 'Primitive Functions:\n\n- new-func: Opens a new function for editing\n- save-func: Compiles the current function and adds it to your registry\n- revert-func: Resets any changes made in the editing window (also cancels a new function)\n- reset-funcs: Removes all functions from your registry and leaves only the built-ins\n\nAll other functions are defined by the base registry and have associated entries/code available via the dropdown';
+
 function xhr(url) {
     return new Promise((resolve, reject) => {
         const request = new XMLHttpRequest();
@@ -150,7 +152,6 @@ let progcalc = {
     _stack: [],
     _environment: null,
     _currentFunction: null,
-    _defaultDisplay: null,
 
     _stackUI: document.getElementById("stack"),
     _codeUI: document.getElementById("program"),
@@ -159,7 +160,7 @@ let progcalc = {
     _promptUI: document.getElementById("prompt"),
 
     _init: function() {
-        this._defaultDisplay = this._codeUI.value;
+        this._codeUI.value = DEFAULT_DISPLAY;
         loadBaseDefs().then(builtin_defs => {
             let user_defs = loadUserDefs();
             this._environment = createFunctionEnvironment(builtin_defs, user_defs);
@@ -211,7 +212,7 @@ let progcalc = {
     _viewSource: function(event) {
         let funcName = this._functionListUI.value;
         if (!funcName) {
-            this._codeUI.value = this._defaultDisplay;
+            this._codeUI.value = DEFAULT_DISPLAY;
             this._currentFunction = null;
             return;
         }
@@ -294,7 +295,7 @@ let progcalc = {
             if (!existingCode) {
                 // A newly defined function which is being aborted
                 this._currentFunction = null;
-                this._codeUI.value = this._defaultDisplay;
+                this._codeUI.value = DEFAULT_DISPLAY;
                 this._functionListUI.value = '';
                 this.message("New function cancelled");
             } else {
