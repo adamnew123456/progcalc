@@ -1,4 +1,4 @@
-const DEFAULT_DISPLAY = 'Primitive Functions:\n\n- new-func: Opens a new function for editing\n- save-func: Compiles the current function and adds it to your registry\n- revert-func: Resets any changes made in the editing window (also cancels a new function)\n- reset-funcs: Removes all functions from your registry and leaves only the built-ins\n\nAll other functions are defined by the base registry and have associated entries/code available via the dropdown';
+const DEFAULT_DISPLAY = 'Primitive Functions:\n\n- new-func: Opens a new function for editing\n- save-func: Compiles the current function and adds it to your registry\n- revert-func: Resets any changes made in the editing window (also cancels a new function)\n- reset-funcs: Removes all functions from your registry and leaves only the built-ins\n\nAll other functions are defined by the base registry and have associated entries/code available via the dropdown\n\nMobile-friendly input is supported via inputs /,[qwertyuiop.]+';
 
 function xhr(url) {
     return new Promise((resolve, reject) => {
@@ -262,13 +262,36 @@ let progcalc = {
         this._renderStack();
     },
 
+    _substituteNumber: function(value) {
+        const map = "pqwertyuio";
+        if (/,[qwertyuiop.]+/.test(value)) {
+            let values = [];
+            for (let i = 1; i < value.length; i++) {
+                let idx = map.indexOf(value[i]);
+                if (idx > 0) {
+                    values.push(idx);
+                } else {
+                    values.push(values[i]);
+                }
+            }
+            return values.join("");
+        } else {
+            return value;
+        }
+    },
+
     // External interface exposed to scripts
     message: function(msg) {
         this._messageUI.innerText = msg;
     },
 
     invoke: function(command) {
-        command = command.toLowerCase();
+        command = this._substituteNumber(command.toLowerCase());
+        // For mobile input, we support inputting numbers as:
+        //
+        // ,[qwertyuiop.]+
+        //
+        // Where q => 0, w => 1, etc.
         if (!isNaN(Number(command))) {
             this._stack.push(Number(command));
         } else if (command == "new-func") {
@@ -355,6 +378,10 @@ let progcalc = {
         command = command.toLowerCase();
         if (command === 'execute' || command === 'save' || command == 'load' || command == 'reset') {
             throw new Error(command + " is a reserved command and cannot be redefined");
+        }
+
+        if (/,[qwertyuiop.]+/.test(value)) {
+            throw new Error(command + " is an encoded number and cannot be used as a command");
         }
 
         if (!isNaN(Number(command))) {
