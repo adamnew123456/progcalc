@@ -5,6 +5,7 @@
     top: 2%;
     width: 30%;
     height: 85%;
+    overflow: hidden;
 
     display: flex;
     flex-direction: column-reverse;
