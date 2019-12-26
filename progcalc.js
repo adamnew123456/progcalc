@@ -153,6 +153,10 @@ let progcalc = {
     _environment: null,
     _currentFunction: null,
 
+    _tabStack: document.getElementById("tab-stack"),
+    _tabCode: document.getElementById("tab-code"),
+
+    _programUI: document.getElementById("program-box"),
     _stackUI: document.getElementById("stack"),
     _codeUI: document.getElementById("program"),
     _messageUI: document.getElementById("messages"),
@@ -169,6 +173,16 @@ let progcalc = {
 
             this._promptUI.addEventListener('keydown', this._executePrompt.bind(this));
             this._functionListUI.addEventListener('change', this._viewSource.bind(this));
+
+            this._tabStack.addEventListener('click', () => {
+                this._stackUI.style.visibility = 'visible';
+                this._programUI.style.visibility = 'hidden';
+            });
+
+            this._tabCode.addEventListener('click', () => {
+                this._stackUI.style.visibility = 'hidden';
+                this._programUI.style.visibility = 'visible';
+            });
         });
     },
 

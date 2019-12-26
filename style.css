@@ -1,10 +1,26 @@
+#tab-stack {
+    position: fixed;
+    top: 2%;
+    left: 2%;
+    width: 48%;
+    height: 8%;
+}
+
+#tab-code {
+    position: fixed;
+    top: 2%;
+    right: 2%;
+    width: 48%;
+    height: 8%;
+}
+
 #stack {
     border: 1px solid black;
     position: fixed;
     left: 2%;
-    top: 2%;
-    width: 30%;
-    height: 85%;
+    top: 12%;
+    width: 96%;
+    height: 65%;
     overflow: hidden;
 
     display: flex;
@@ -16,21 +32,30 @@
     border: 1px solid black;
     position: fixed;
     left: 2%;
+    bottom: 12%;
+    width: 96%;
+    height: 8%;
+}
+
+#prompt {
+    position: fixed;
+    left: 2%;
     bottom: 2%;
-    width: 30%;
+    width: 96%;
     height: 8%;
 }
 
 #program-box {
+    visibility: hidden;
     display: flex;
     align-items: stretch;
     flex-direction: column;
 
     position: fixed;
-    right: 2%;
-    top: 2%;
-    width: 63%;
-    height: 85%;
+    left: 2%;
+    top: 12%;
+    width: 96%;
+    height: 65%;
 }
 
 #program-selector {
@@ -42,14 +67,6 @@
 
 #program {
     flex: 1 1;
-}
-
-#prompt {
-    position: fixed;
-    right: 2%;
-    bottom: 2%;
-    width: 63%;
-    height: 8%;
 }
 
 #stack > div {
